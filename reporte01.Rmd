@@ -1,0 +1,170 @@
+---
+title: "Análisis inicial"
+author: "Ricardo Pizarro"
+date: "5/30/2022"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,warning=F, message=F)
+
+source("Procesamiento.R")
+
+variables <- variables[!variables %in% c("mt18","pdu11","pdu17","de04","de20","dh02","dh01")]
+
+```
+
+## Probamos como se ve en MINMAX
+
+```{r, warning=F,message=F}
+
+new_df <- list()
+for(i in 1:length(variables)){
+varia = variables[i]
+  nombre <- paste0("new_",varia)
+
+new_df[[i]] <- indicadores %>%
+  mutate(!!nombre := normalizar(varia,indicadores,minmax = T)) %>%
+  select(!!nombre)
+
+names(new_df[[i]]) <-names(new_df[[i]]) %>% str_remove_all("new_")
+
+#print(new_df[[i]])
+}
+
+new_df <-indicadores[1:3] %>% bind_cols(
+new_df %>% bind_cols())
+
+
+new_df %>%
+  group_by(unidad_urbana_funcional) %>%
+  summarise_if(is.numeric,.funs = sum, na.rm=T) %>%
+  pivot_longer(cols = variables) %>%
+  mutate(dimension = case_when(str_detect(name,"m[:DIGIT:]") ~ "D1",
+                               str_detect(name,"mt") ~ "D2",
+                               str_detect(name,"pdu") ~ "D3",
+                               str_detect(name,"de") ~ "D4",
+                               str_detect(name,"gpc") ~ "D5",
+                               str_detect(name,"dh") ~ "D6")) %>%
+  ggplot(aes(unidad_urbana_funcional,value)) +
+  geom_col() +
+  coord_flip() +
+  facet_wrap(.~dimension)
+
+```
+
+## Tabla del gráfico minmax
+
+```{r }
+
+new_df %>%
+  group_by(unidad_urbana_funcional) %>%
+  summarise_if(is.numeric,.funs = sum, na.rm=T) %>%
+  pivot_longer(cols = variables) %>%
+  group_by(unidad_urbana_funcional) %>%
+  summarise(total = sum(value,na.rm = T)) %>%
+  arrange(-total) %>% kableExtra::kable()
+
+```
+
+## Probamos como se ve en Zscore sin normalizar
+
+```{r }
+
+new_df <- list()
+for(i in 1:length(variables)){
+  varia = variables[i]
+  nombre <- paste0("new_",varia)
+
+  new_df[[i]] <- indicadores %>%
+    mutate(!!nombre := normalizar(varia,indicadores,z_norm = "own")) %>%
+    select(!!nombre)
+
+  names(new_df[[i]]) <-names(new_df[[i]]) %>% str_remove_all("new_")
+
+  }
+
+new_df <-indicadores[1:3] %>% bind_cols(
+  new_df %>% bind_cols())
+
+
+new_df %>%
+  group_by(unidad_urbana_funcional) %>%
+  summarise_if(is.numeric,.funs = sum, na.rm=T) %>%
+  pivot_longer(cols = variables) %>%
+  mutate(dimension = case_when(str_detect(name,"m[:DIGIT:]") ~ "D1",
+                               str_detect(name,"mt") ~ "D2",
+                               str_detect(name,"pdu") ~ "D3",
+                               str_detect(name,"de") ~ "D4",
+                               str_detect(name,"gpc") ~ "D5",
+                               str_detect(name,"dh") ~ "D6")) %>%
+  ggplot(aes(unidad_urbana_funcional,value)) +
+  geom_col() +
+  coord_flip() +
+  facet_wrap(.~dimension)
+
+```
+
+## Tabla del gráfico Zscore
+
+```{r }
+
+new_df %>%
+  group_by(unidad_urbana_funcional) %>%
+  summarise_if(is.numeric,.funs = sum, na.rm=T) %>%
+  pivot_longer(cols = variables) %>%
+  group_by(unidad_urbana_funcional) %>%
+  summarise(total = sum(value,na.rm = T)) %>%
+  arrange(-total) %>% kableExtra::kable()
+
+```
+
+## análisis de correlaciones por dimensiones - D1
+
+```{r }
+
+corrplot::corrplot(cor(new_df[names(new_df)[str_detect(names(new_df),"m[:DIGIT:]")]]))
+
+```
+
+## análisis de correlaciones por dimensiones - D2
+
+```{r }
+
+corrplot::corrplot(cor(new_df[names(new_df)[str_detect(names(new_df),"mt")]]))
+
+```
+
+## análisis de correlaciones por dimensiones - D3
+
+```{r }
+
+corrplot::corrplot(cor(new_df[names(new_df)[str_detect(names(new_df),"pdu")]]))
+
+```
+
+
+## análisis de correlaciones por dimensiones - D4
+
+```{r }
+
+corrplot::corrplot(cor(new_df[names(new_df)[str_detect(names(new_df),"de")]]))
+
+```
+
+## análisis de correlaciones por dimensiones - D5
+
+```{r }
+
+corrplot::corrplot(cor(new_df[names(new_df)[str_detect(names(new_df),"gpc")]]))
+
+```
+
+## análisis de correlaciones por dimensiones - D6
+
+```{r }
+
+corrplot::corrplot(cor(new_df[names(new_df)[str_detect(names(new_df),"dh")]]))
+
+```
+

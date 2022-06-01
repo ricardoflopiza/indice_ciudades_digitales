@@ -184,146 +184,275 @@ scaling_zscore = function(var,max_val = 15){
 #### función general para normalizar todos los datos ####
 #########################################################
 
-normalizar = function(var,datos,minmax = FALSE,z = FALSE, z_norm = NULL,max_val = 15, force_inv = NULL){
+### función inicial ####
+ normalizar = function(var,datos,minmax = FALSE,z = FALSE, z_norm = NULL,max_val = 15, force_inv = NULL){
 
-### extraemos el valor si es necesario invertir la escala dependiendo del tipo de indicador
-invertir = data_vars$Inversion[data_vars$Código == var]
+   ### extraemos el valor si es necesario invertir la escala dependiendo del tipo de indicador
+   invertir = data_vars$Inversion[data_vars$Código == var]
 
-## argumento para forzar inversion
-if(!is.null(force_inv)){
-  invertir = force_inv
-}
+   ## argumento para forzar inversion
+   if(!is.null(force_inv)){
+     invertir = force_inv
+   }
 
-### extraemos el valor si es ponderar por población region o por comuna
-if(data_vars$Poblacion[data_vars$Código == var] == "regional"){
-  agno <-paste0("a",data_vars$Año[data_vars$Código == var],"_reg")
+   ### extraemos el valor si es ponderar por población region o por comuna
+   if(data_vars$Poblacion[data_vars$Código == var] == "regional"){
+     agno <-paste0("a",data_vars$Año[data_vars$Código == var],"_reg")
+
+   }else{
+     agno <-paste0("a",data_vars$Año[data_vars$Código == var])
+   }
+
+   peso <- paste0("peso",data_vars$Año[data_vars$Código == var])
+
+   # ponderación poblacional
+   #print((datos[var] /datos[agno]*1000)[[1]])
+
+   pond_pob <- (((datos[var] /datos[agno]*1000)[[1]])*datos[peso])[[1]]
+
+   ### minmax = T , devuelve indicador con minmax
+   if(minmax == T){
+
+     min <- min(pond_pob, na.rm = T)
+     max <- max(pond_pob, na.rm = T)
+
+     #### hay que invertirlo?
+     if(invertir == "si"){
+       ret <- abs((pond_pob - min) / (max-min)-1)
+     }else if(invertir == "no"){
+       ret <- (pond_pob - min) / (max-min)
+     }
+
+   }
+
+   ### z = T , devuelve indicador en zscore
+
+   if(z == T){
+     sd = sd(pond_pob,na.rm = T)
+     mean = mean(pond_pob, na.rm = T)
+
+     ret <- (pond_pob-mean)/sd
+   }
+
+   ## z_norm != null , devuelve indicador en zscore normalizado con dos opciones, por minmax o por el método propio
+   if(!is.null(z_norm)){
+
+     sd = sd(pond_pob,na.rm = T)
+     mean = mean(pond_pob, na.rm = T)
+
+     zscore <- (pond_pob-mean)/sd
+
+     #### normalizamos z con minmax, pero no funciona bien
+     if(z_norm == "minmax"){
+       zscore <- (zscore - min(zscore, na.rm = T)) / (max(zscore, na.rm = T)-min(zscore, na.rm = T))
+
+       #### hay que invertirlo?
+       if(invertir == "si"){
+         ret <- abs(zscore-1)
+       }else if(invertir == "no"){
+         ret <- zscore
+       }
+
+
+     }
+
+     if(z_norm == "own"){
+
+       # #### hay que invertirlo?
+       if(invertir == "si"){
+         ret <- scaling_zscore(zscore*-1,max_val = max_val)
+       }else if(invertir == "no"){
+         ret <- scaling_zscore(zscore,max_val = max_val)
+       }
+     }
+
+   }
+
+   if(minmax == F & z == F & is.null(z_norm)){
+     ret <- pond_pob
+   }
+
+   return(round(ret,2))
+ }
+
+ ### probamos la función inicial
+ normalizar("m02a",indicadores)
+ normalizar("m02a",indicadores, minmax = T)
+ normalizar("m02a",indicadores, z = T)
+ normalizar("m02a",indicadores, z_norm = "minmax")
+ normalizar("m02a",indicadores, z_norm = "own")
+ normalizar("m02a",indicadores, z_norm = "own", force_inv = "no")
+
+ hist(normalizar("m02a",indicadores, z_norm = "own", force_inv = "no"))
+
+ hist(normalizar("m02a",indicadores, z_norm = "own")) ### ponderado por población + z normalizado por formula propia
+ hist(normalizar("m02a",indicadores, z_norm = "own", force_inv = "no")) ### ponderado por población + z normalizado por formula propia + no
+
+ # std(x)*z+mean(x)
+ hist(indicadores$m02a)
+ hist(normalizar("m02a",indicadores)) ### ponderado por población
+ hist(normalizar("m02a",indicadores, minmax = T)) ### ponderado por población + minmax
+ hist(normalizar("m02a",indicadores, z = T)) ### ### ponderado por población + z
+ hist(normalizar("m02a",indicadores, z_norm = "minmax")) ### ponderado por población + z normalizado por minmax
+ hist(normalizar("m02a",indicadores, z_norm = "own")) ### ponderado por población + z normalizado por formula propia
+ hist(normalizar("m02a",indicadores, z_norm = "own", force_inv = "no")) ### ponderado por población + z normalizado por formula propia + no invertir
+
+ hist(indicadores$m08)
+ hist(normalizar("m08",indicadores)) ### ponderado por población
+ hist(normalizar("m08",indicadores, minmax = T, force_inv = "no")[[1]]) ### ponderado por población + minmax
+ hist(normalizar("m08",indicadores, z = T)) ### ### ponderado por población + z
+ hist(normalizar("m08",indicadores, z_norm = "minmax")) ### ponderado por población + z normalizado por minmax
+ hist(normalizar("m08",indicadores, z_norm = "own",max_val = 15, force_inv = "no")) ### ponderado por población + z normalizado por formula propia
+ hist(normalizar("m08",indicadores, z_norm = "own",max_val = 100)) ### ponderado por población + z normalizado por formula propia + no invertir
+
+
+### creamos función para ponderar por población  ####
+ponderar_procesar = function(var,datos){
+
+  ### extraemos el valor si es necesario invertir la escala dependiendo del tipo de indicador
+  invertir = data_vars$Inversion[data_vars$Código == var]
+
+  ## argumento para forzar inversion
+  if(!is.null(force_inv)){
+    invertir = force_inv
+  }
+
+  ### extraemos el valor si es ponderar por población region o por comuna
+  if(data_vars$Poblacion[data_vars$Código == var] == "regional"){
+    agno <-paste0("a",data_vars$Año[data_vars$Código == var],"_reg")
 
   }else{
     agno <-paste0("a",data_vars$Año[data_vars$Código == var])
   }
 
-peso <- paste0("peso",data_vars$Año[data_vars$Código == var])
+  peso <- paste0("peso",data_vars$Año[data_vars$Código == var])
 
-# ponderación poblacional
-#print((datos[var] /datos[agno]*1000)[[1]])
+  # ponderación poblacional
+  #print((datos[var] /datos[agno]*1000)[[1]])
 
-pond_pob <- (((datos[var] /datos[agno]*1000)[[1]])*datos[peso])[[1]]
+  pond_pob <- round((((datos[var] /datos[agno]*1000)[[1]])*datos[peso])[[1]],4)
 
-### minmax = T , devuelve indicador con minmax
-if(minmax == T){
-
-min <- min(pond_pob, na.rm = T)
-max <- max(pond_pob, na.rm = T)
-
-#### hay que invertirlo?
-if(invertir == "si"){
-ret <- abs((pond_pob - min) / (max-min)-1)
-}else if(invertir == "no"){
-  ret <- (pond_pob - min) / (max-min)
+  pond_pob
 }
 
-}
+# Procesamos variables ####
+## eliminamos variables
+variables <- names(indicadores[-c(1:3)])
+variables <- variables[1:100]
 
-### z = T , devuelve indicador en zscore
+variables <- variables[!variables %in% c("mt18","pdu11","pdu17","de04","de20","dh02","dh01")]
 
-if(z == T){
-sd = sd(pond_pob,na.rm = T)
-mean = mean(pond_pob, na.rm = T)
+var_dim1 <- variables[str_detect(variables,"m[:DIGIT:]")]
+var_dim2 <- variables[str_detect(variables,"mt")]
+var_dim3 <- variables[str_detect(variables,"pdu")]
+var_dim4 <- variables[str_detect(variables,"de")]
+var_dim5 <- variables[str_detect(variables,"gpc")]
+var_dim6 <- variables[str_detect(variables,"dh")]
 
-ret <- (pond_pob-mean)/sd
-}
+## Primera versión ####
+# 1- ponderamos
+# 2- normalizamos
+# 3- agregamos sumando indicadores a nivel de unidad_funcional
 
-### z_norm != null , devuelve indicador en zscore normalizado con dos opciones, por minmax o por el método propio
-if(!is.null(z_norm)){
+ new_df <- list()
+ for(i in 1:length(variables)){
+   varia = variables[i]
+   nombre <- paste0("new_",varia)
 
-  sd = sd(pond_pob,na.rm = T)
-  mean = mean(pond_pob, na.rm = T)
+   new_df[[i]] <- indicadores %>%
+     mutate(!!nombre := normalizar(varia,indicadores,minmax = T)) %>%
+     select(!!nombre)
 
-  zscore <- (pond_pob-mean)/sd
+   names(new_df[[i]]) <-names(new_df[[i]]) %>% str_remove_all("new_")
 
-#### normalizamos z con minmax, pero no funciona bien
-if(z_norm == "minmax"){
-  zscore <- (zscore - min(zscore, na.rm = T)) / (max(zscore, na.rm = T)-min(zscore, na.rm = T))
+   #print(new_df[[i]])
+ }
+
+ new_df <-indicadores[1:3] %>% bind_cols(
+   new_df %>% bind_cols())
+
+ new_df %>%
+   group_by(unidad_urbana_funcional) %>%
+   summarise_if(is.numeric,.funs = sum, na.rm=T) %>%
+   pivot_longer(cols = variables) %>%
+   mutate(dimension = case_when(str_detect(name,"m[:DIGIT:]") ~ "D1",
+                                str_detect(name,"mt") ~ "D2",
+                                str_detect(name,"pdu") ~ "D3",
+                                str_detect(name,"de") ~ "D4",
+                                str_detect(name,"gpc") ~ "D5",
+                                str_detect(name,"dh") ~ "D6")) %>%
+   ggplot(aes(unidad_urbana_funcional,value)) +
+   geom_col() +
+   coord_flip() +
+   facet_wrap(.~dimension)
+
+## Segunda versión ####
+# 1- ponderamos
+# 2- agregamos sumando indicadores a nivel de unidad_funcional
+# 3- normalizamos
+
+### pondeamos
+df <- map(variables,function(x) ponderar_procesar(x,datos = indicadores)) %>% bind_cols()
+names(df) <- variables
+df <- bind_cols(indicadores[1:3],df)
+
+### agregamos a nivel unidad_funcional
+df <- df %>%
+  group_by(unidad_urbana_funcional) %>%
+  summarise_if(is.numeric,.funs = sum, na.rm=T)
+
+#i = 1
+l_minmax <- list()
+for(i in 1:length(variables)){
+  varia = variables[i]
+  #nombre <- paste0("new_",varia)
+
+  invertir = data_vars$Inversion[data_vars$Código == varia]
+
+  min <- min(df[varia], na.rm = T)
+  max <- max(df[varia], na.rm = T)
 
   #### hay que invertirlo?
   if(invertir == "si"){
-    ret <- abs(zscore-1)
+    ret <- abs((df[varia] - min) / (max-min)-1)
   }else if(invertir == "no"){
-    ret <- zscore
+    ret <- (df[varia] - min) / (max-min)
   }
-
-
-}
-
-if(z_norm == "own"){
-
-# #### hay que invertirlo?
-    if(invertir == "si"){
-      ret <- scaling_zscore(zscore*-1,max_val = max_val)
-    }else if(invertir == "no"){
-      ret <- scaling_zscore(zscore,max_val = max_val)
-    }
-}
+ l_minmax[i] <- round(ret,2)
 
 }
 
-if(minmax == F & z == F & is.null(z_norm)){
-  ret <- pond_pob
-}
+df2 <- l_minmax %>% bind_cols()
+names(df2) <- variables
 
-return(round(ret,2))
-}
+df2 <- bind_cols(df[1],df2)
 
-normalizar("m02a",indicadores)
-normalizar("m02a",indicadores, minmax = T)
-normalizar("m02a",indicadores, z = T)
-normalizar("m02a",indicadores, z_norm = "minmax")
-normalizar("m02a",indicadores, z_norm = "own")
-normalizar("m02a",indicadores, z_norm = "own", force_inv = "no")
+df2 %>%
+  pivot_longer(cols = variables) %>%
+  mutate(dimension = case_when(str_detect(name,"m[:DIGIT:]") ~ "D1",
+                               str_detect(name,"mt") ~ "D2",
+                               str_detect(name,"pdu") ~ "D3",
+                               str_detect(name,"de") ~ "D4",
+                               str_detect(name,"gpc") ~ "D5",
+                               str_detect(name,"dh") ~ "D6")) %>%
+  ggplot(aes(unidad_urbana_funcional,value)) +
+  geom_col() +
+  coord_flip()
 
-hist(normalizar("m02a",indicadores, z_norm = "own", force_inv = "no"))
+df2 %>%
+  pivot_longer(cols = variables) %>%
+  mutate(dimension = case_when(str_detect(name,"m[:DIGIT:]") ~ "D1",
+                               str_detect(name,"mt") ~ "D2",
+                               str_detect(name,"pdu") ~ "D3",
+                               str_detect(name,"de") ~ "D4",
+                               str_detect(name,"gpc") ~ "D5",
+                               str_detect(name,"dh") ~ "D6")) %>%
+  ggplot(aes(unidad_urbana_funcional,value)) +
+  geom_col() +
+  coord_flip() +
+  facet_wrap(.~dimension)
 
-hist(normalizar("m02a",indicadores, z_norm = "own")) ### ponderado por población + z normalizado por formula propia
-hist(normalizar("m02a",indicadores, z_norm = "own", force_inv = "no")) ### ponderado por población + z normalizado por formula propia + no
 
-# std(x)*z+mean(x)
-hist(indicadores$m02a)
-hist(normalizar("m02a",indicadores)) ### ponderado por población
-hist(normalizar("m02a",indicadores, minmax = T)) ### ponderado por población + minmax
-hist(normalizar("m02a",indicadores, z = T)) ### ### ponderado por población + z
-hist(normalizar("m02a",indicadores, z_norm = "minmax")) ### ponderado por población + z normalizado por minmax
-hist(normalizar("m02a",indicadores, z_norm = "own")) ### ponderado por población + z normalizado por formula propia
-hist(normalizar("m02a",indicadores, z_norm = "own", force_inv = "no")) ### ponderado por población + z normalizado por formula propia + no invertir
-
-hist(indicadores$m08)
-hist(normalizar("m08",indicadores)) ### ponderado por población
-hist(normalizar("m08",indicadores, minmax = T, force_inv = "no")[[1]]) ### ponderado por población + minmax
-hist(normalizar("m08",indicadores, z = T)) ### ### ponderado por población + z
-hist(normalizar("m08",indicadores, z_norm = "minmax")) ### ponderado por población + z normalizado por minmax
-hist(normalizar("m08",indicadores, z_norm = "own",max_val = 15, force_inv = "no")) ### ponderado por población + z normalizado por formula propia
-hist(normalizar("m08",indicadores, z_norm = "own",max_val = 100)) ### ponderado por población + z normalizado por formula propia + no invertir
-
-# Procesamos varias
-
-variables <- names(indicadores)[4:103]
-
-# ## detectando NA por variables ###
-# fe <- map(indicadores[variables],function(x) as.data.frame(prop.table(table(x,exclude = F))))
-#
-# nas <- map_df(fe, function(x) x %>% filter(is.na(x)) )
-#
-# nas$var <- row.names(map_df(fe, function(x) any(is.na(x$x))) %>% t() %>% as.data.frame() %>% filter(V1 == TRUE))
-#
-# nas <- nas %>% arrange(-Freq) %>%
-#   mutate(mas_del_70 = if_else(Freq > 0.7,1,0),
-#          mas_del_60 = if_else(Freq > 0.6,1,0),
-#          mas_del_50 = if_else(Freq > 0.5,1,0),
-#          mas_del_40 = if_else(Freq > 0.4,1,0),
-#          mas_del_30 = if_else(Freq > 0.3,1,0),
-#          mas_del_20 = if_else(Freq > 0.20,1,0)) %>%
-#   select(var,everything(),-x)
-#
-# writexl::write_xlsx(nas,"nas_en_variables.xlsx")
 
 
 

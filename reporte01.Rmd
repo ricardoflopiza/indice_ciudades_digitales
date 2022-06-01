@@ -185,54 +185,6 @@ df_version1 %>%
 
 ```
 
-## análisis de correlaciones por dimensiones - D1
-
-```{r ,include=F}
-
-corrplot::corrplot(cor(df_version1[var_dim1]))
-
-```
-
-## análisis de correlaciones por dimensiones - D2
-
-```{r ,include=F}
-
-corrplot::corrplot(cor(df_version1[var_dim2]))
-
-```
-
-## análisis de correlaciones por dimensiones - D3
-
-```{r ,include=F}
-
-corrplot::corrplot(cor(df_version1[var_dim3]))
-
-```
-
-## análisis de correlaciones por dimensiones - D4
-
-```{r ,include=F}
-
-corrplot::corrplot(cor(df_version1[var_dim4]))
-
-```
-
-## análisis de correlaciones por dimensiones - D5
-
-```{r ,include=F}
-
-corrplot::corrplot(cor(df_version1[var_dim5]))
-
-```
-
-## análisis de correlaciones por dimensiones - D6
-
-```{r ,include=F}
-
-corrplot::corrplot(cor(df_version1[var_dim6]))
-
-```
-
 # Segunda versión ####
 #### 1- Ponderamos
 #### 2- Agregamos sumando indicadores a nivel de unidad_funcional
@@ -336,6 +288,8 @@ ggpairs(df_version2[var_dim1],upper = list(continuous = wrap("cor", size = 5)))
 
 ```
 
+## Correlaciones por sobre 0.5 en versión 1 y versión 2
+
 ```{r}
 
 cor_d1_v1 <- cor(df_version1[var_dim1], use = "complete.obs") %>% as.data.frame()
@@ -372,6 +326,8 @@ ggpairs(df_version1[var_dim2],upper = list(continuous = wrap("cor", size = 5)))
 ggpairs(df_version2[var_dim2],upper = list(continuous = wrap("cor", size = 5)))
 
 ```
+
+## Correlaciones por sobre 0.5 en versión 1 y versión 2
 
 ```{r}
 
@@ -411,6 +367,8 @@ ggpairs(df_version2[var_dim3],upper = list(continuous = wrap("cor", size = 5)))
 
 ```
 
+## Correlaciones por sobre 0.5 en versión 1 y versión 2
+
 ```{r}
 
 cor_d3_v1 <- cor(df_version1[var_dim3], use = "complete.obs") %>% as.data.frame()
@@ -449,6 +407,8 @@ ggpairs(df_version2[var_dim4],upper = list(continuous = wrap("cor", size = 5)))
 
 ```
 
+## Correlaciones por sobre 0.5 en versión 1 y versión 2
+
 ```{r}
 
 cor_d4_v1 <- cor(df_version1[var_dim4], use = "complete.obs") %>% as.data.frame()
@@ -485,6 +445,8 @@ ggpairs(df_version1[var_dim4],upper = list(continuous = wrap("cor", size = 5)))
 ggpairs(df_version2[var_dim4],upper = list(continuous = wrap("cor", size = 5)))
 
 ```
+
+## Correlaciones por sobre 0.5 en versión 1 y versión 2
 
 ```{r}
 
@@ -523,6 +485,8 @@ ggpairs(df_version2[var_dim5],upper = list(continuous = wrap("cor", size = 5)))
 
 ```
 
+## Correlaciones por sobre 0.5 en versión 1 y versión 2
+
 ```{r}
 
 cor_d5_v1 <- cor(df_version1[var_dim5], use = "complete.obs") %>% as.data.frame()
@@ -559,6 +523,8 @@ ggpairs(df_version1[var_dim4],upper = list(continuous = wrap("cor", size = 5)))
 ggpairs(df_version2[var_dim6],upper = list(continuous = wrap("cor", size = 5)))
 
 ```
+
+## Correlaciones por sobre 0.5 en versión 1 y versión 2
 
 ```{r}
 
